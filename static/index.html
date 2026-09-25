@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Mini Toolkit</title>
+<link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+<style>
+:root{--bg:#0b0b0d;--panel:#111114;--code:#08080a;--ink:#e6e6e8;--muted:#7c7c85;--dim:#4a4a52;
+ --line:#26262c;--lineon:#3d3d46;--primary:#fab283;--secondary:#5c9cf5;--accent:#9d7cd8;
+ --err:#e06c75;--ok:#98c379;
+ --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.7 var(--mono);
+ display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--lineon)}
+
+.top{border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:14px;flex:0 0 auto}
+.top img{width:19px;height:19px}
+.mark{color:var(--primary);font-weight:700}
+.tabs{display:flex;gap:4px;margin-left:10px}
+.tabs button{background:transparent;border:1px solid transparent;color:var(--muted);
+ font:inherit;font-size:13px;padding:5px 16px;cursor:pointer}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--code);border-color:var(--line);color:var(--primary)}
+.mdl{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
+.mdl .led{width:7px;height:7px;background:var(--dim)}
+.mdl.on .led{background:var(--ok)}
+.mdl.busy .led{background:var(--primary);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+
+main{flex:1 1 auto;overflow:auto;padding:24px 18px}
+.inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.inner{grid-template-columns:1fr}}
+.box{border:1px solid var(--line);background:var(--panel);position:relative;margin-bottom:16px}
+.box>.hd{position:absolute;top:-1px;left:14px;transform:translateY(-50%);background:var(--bg);
+ padding:0 8px;color:var(--muted);font-size:11.5px;letter-spacing:.06em}
+.box>.bd{padding:22px 16px 16px}
+.side{align-self:start}
+.srow{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12.5px}
+.srow span{color:var(--muted)}.srow b{font-variant-numeric:tabular-nums}
+.sgrp{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+.sbig b{display:block;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.2}
+.sbig span{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+
+input,textarea{background:var(--code);color:var(--ink);border:1px solid var(--line);
+ padding:9px 11px;font:inherit;font-size:13.5px;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--lineon)}
+textarea{resize:vertical;line-height:1.75}
+label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 5px}
+.field{margin-bottom:13px}
+button.go{background:transparent;color:var(--primary);border:1px solid #4a3a2c;
+ padding:9px 20px;font:inherit;font-size:13px;cursor:pointer}
+button.go:hover:not(:disabled){background:#1a1410;border-color:var(--primary)}
+button.go:disabled{opacity:.4;cursor:not-allowed}
+button.sec,a.sec{background:transparent;border:1px solid var(--line);color:var(--muted);
+ padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer;
+ text-decoration:none;display:inline-block;line-height:normal}
+button.sec:hover:not(:disabled),a.sec:hover{border-color:var(--lineon);color:var(--ink)}
+button.sec:disabled{opacity:.35;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{color:var(--muted);font-size:12.5px}
+.doc{color:var(--ink);font-size:13.5px;line-height:1.75;margin:0 0 12px;max-width:74ch}
+.doc:last-child{margin-bottom:0}
+.doc code{background:var(--code);border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px;font-size:12px;color:var(--secondary)}
+.doc-pre{background:var(--code);border:1px solid var(--line);padding:12px 14px;
+  font-size:12px;line-height:1.7;overflow-x:auto;color:var(--muted);margin:0 0 12px}
+.doc-pre .u{color:var(--primary)}
+/* ---- library browser, laid out the way the site presents its decks ---- */
+.crumb{color:var(--dim);font-size:12px;margin-bottom:14px;min-height:16px}
+.crumb a{color:var(--secondary);text-decoration:none;cursor:pointer}
+.crumb a:hover{color:var(--primary)}
+.crumb span{color:var(--dim)}
+.controls{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.field.grow{flex:1;margin:0}
+.count{color:var(--dim);font-size:12px;white-space:nowrap}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.card{border:1px solid var(--line);background:var(--panel);padding:14px 15px 13px;
+  cursor:pointer;display:flex;flex-direction:column;gap:7px;min-height:118px}
+.card:hover{border-color:var(--lineon)}
+.card.picked{border-color:var(--primary)}
+.card .cpick{display:none;color:var(--dim);font-size:12px;margin-right:2px}
+.grid.selecting .card .cpick{display:inline}
+.grid.selecting .card.picked .cpick{color:var(--primary)}
+.card:hover .ct{color:var(--primary)}
+.card .chead{display:flex;gap:9px;align-items:center}
+.card .cnum{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+.card .cbadge{color:var(--secondary);font-size:10.5px;letter-spacing:.06em;
+  text-transform:uppercase;border:1px solid var(--line);padding:1px 6px;border-radius:2px}
+.card .ct{color:var(--ink);font-size:13.5px;font-weight:600;line-height:1.35}
+.card .cd{color:var(--muted);font-size:12px;line-height:1.6;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .cfoot{display:flex;gap:12px;color:var(--dim);font-size:11px;margin-top:2px}
+.card .cgo{color:var(--primary);margin-left:auto}
+.gmeta{display:flex;gap:14px;flex-wrap:wrap;color:var(--dim);font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.gmeta a{color:var(--secondary);text-decoration:none}
+.gtitle{color:var(--ink);font-size:21px;line-height:1.3;margin:0 0 18px;font-weight:600}
+/* ---- rendered markdown ---- */
+.md{max-width:86ch}
+.md-h1,.md-h2{color:var(--primary);font-size:15px;font-weight:600;margin:26px 0 11px;
+  padding-bottom:7px;border-bottom:1px solid var(--line)}
+.md-h3,.md-h4{color:var(--ink);font-size:13.5px;font-weight:600;margin:20px 0 9px}
+.md-p{color:var(--ink);font-size:13.5px;line-height:1.78;margin:0 0 13px}
+.md ul,.md ol{margin:0 0 13px;padding-left:22px;color:var(--ink);font-size:13.5px;line-height:1.78}
+.md li{margin-bottom:5px}
+.md code{background:var(--code);border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px;font-size:12px;color:var(--secondary)}
+.md-code{background:var(--code);border:1px solid var(--line);padding:13px 15px;margin:0 0 15px;
+  overflow-x:auto;font-size:12px;line-height:1.65;position:relative}
+.md-code code{background:none;border:0;padding:0;color:var(--muted);font-size:12px}
+.md-code[data-lang]:before{content:attr(data-lang);position:absolute;top:0;right:0;
+  background:var(--line);color:var(--dim);font-size:10px;letter-spacing:.06em;padding:1px 7px}
+.md-tw{overflow-x:auto;margin:0 0 15px}
+.md-table{border-collapse:collapse;font-size:12.5px;min-width:100%}
+.md-table th{color:var(--primary);text-align:left;font-weight:600;padding:7px 12px;
+  border-bottom:1px solid var(--lineon);white-space:nowrap}
+.md-table td{color:var(--muted);padding:7px 12px;border-bottom:1px solid var(--line);
+  vertical-align:top;line-height:1.6}
+.md-table tr:hover td{color:var(--ink)}
+.md-quote{border-left:2px solid var(--primary);padding:2px 0 2px 14px;margin:0 0 15px}
+.md-quote .md-p{color:var(--muted);margin-bottom:8px}
+.md-quote .md-p:last-child{margin-bottom:0}
+.md a{color:var(--secondary)}
+.wp{border:1px solid var(--line);background:var(--code);padding:14px 15px;margin-bottom:16px}
+.wpt{color:var(--primary);font-size:12.5px;font-weight:600;margin-bottom:7px}
+.wp code{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px;font-size:11.5px;color:var(--secondary)}
+.udrop{border:1px dashed var(--line);padding:22px 16px;text-align:center;cursor:pointer;
+  margin-bottom:14px;transition:border-color .12s}
+.udrop:hover,.udrop.over{border-color:var(--primary)}
+.udrop b{display:block;color:var(--ink);font-size:13px;margin-bottom:5px}
+.udrop span{color:var(--dim);font-size:12px}
+.ufile{display:flex;gap:12px;align-items:center;border:1px solid var(--line);
+  background:var(--panel);padding:10px 13px;margin-bottom:8px}
+.ufile .ut{color:var(--ink);font-size:13px;flex:1;cursor:pointer}
+.ufile:hover .ut{color:var(--primary)}
+.ufile .ug{color:var(--secondary);font-size:11px}
+.ufile .us{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+.ufile .ux{color:var(--dim);font-size:15px;cursor:pointer;padding:0 3px;background:none;border:0}
+.ufile .ux:hover{color:var(--primary)}
+.ufile.bad{border-color:var(--primary)}
+.ufile.bad .ut{color:var(--primary)}
+/* a grid, not a wrapping flex row: wrapping left a ragged tail and a stray
+   empty cell. The 1px gap over a line-coloured background draws the rules. */
+/* A fixed column count so cells line up vertically between rows, with the
+   last row's cells widened to take up the slack - a plain wrapping row filled
+   the width but left the columns ragged. Rules come from the cells, so nothing
+   is drawn where a cell is not. */
+.mx{display:grid;background:var(--code);
+  border:1px solid var(--line);border-width:1px 0 0 1px;margin:0 0 14px}
+.mx .m{padding:8px 13px;min-width:0;
+  border:1px solid var(--line);border-width:0 1px 1px 0}
+.mx .mk{display:block;color:var(--dim);font-size:10px;letter-spacing:.07em;
+  text-transform:uppercase;margin-bottom:3px}
+.mx .mv{color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .m.hi .mv{color:var(--primary);font-weight:600}
+.mx .mv small{color:var(--dim);font-size:11px;font-weight:400}
+.inst{border:1px solid var(--line);background:var(--code);padding:13px 15px;margin-bottom:16px}
+.inst .opt{display:flex;gap:14px;align-items:center;margin-bottom:9px;flex-wrap:wrap}
+.inst .opt>label{color:var(--dim);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;width:112px;flex:none}
+.inst .opt .sub{margin:0}
+.inst .opt .sub button{border-color:var(--line);color:var(--muted);padding:5px 12px}
+.inst .opt .sub button[aria-selected="true"]{background:var(--panel);
+  border-color:var(--primary);color:var(--primary);font-weight:600}
+.inst .opt .sub button:hover{color:var(--ink)}
+.inst .doc-pre{margin-bottom:11px;background:var(--panel)}
+.skfiles{border:1px solid var(--line);margin-bottom:18px}
+.skfiles .sf{display:flex;gap:12px;align-items:center;padding:8px 13px;cursor:pointer;
+  border-top:1px solid var(--line)}
+.skfiles .sf:first-child{border-top:0}
+.skfiles .sf:hover .sfp{color:var(--primary)}
+.skfiles .sf.on{background:var(--code)}
+.skfiles .sfp{color:var(--ink);font-size:12.5px;flex:1}
+.skfiles .sfb{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+.hh{color:var(--dim);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  margin:2px 0 4px}
+.hit{border-top:1px solid var(--line);padding:11px 2px;cursor:pointer}
+.hit:first-child{border-top:0}
+.hit:hover .ht{color:var(--primary)}
+.hit .hr{display:flex;gap:10px;align-items:baseline}
+.hit .ht{color:var(--ink);font-size:13px;flex:1}
+.hit .hs{color:var(--dim);font-size:11.5px;font-variant-numeric:tabular-nums;flex:none}
+.hit .hg{color:var(--secondary);font-size:11px;flex:none}
+.hit .hp{color:var(--muted);font-size:12px;line-height:1.6;margin-top:5px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lvl{display:flex;gap:14px;padding:11px 0;border-top:1px solid var(--line);max-width:80ch}
+.lvl:first-of-type{border-top:0;padding-top:2px}
+.lvl b{color:var(--primary);font-size:13px;min-width:158px;flex:none}
+.lvl span{color:var(--muted);font-size:13px;line-height:1.7}
+.lvl code{background:var(--code);border-radius:3px;padding:1px 4px;color:var(--secondary)}
+.warn{border:1px solid var(--err);color:var(--err);padding:10px 13px;font-size:12.5px;margin-bottom:14px}
+/* must beat every display rule regardless of source order: .stage sits after
+   this in the sheet and was silently winning, so the progress line never hid */
+.hide{display:none !important}
+pre{background:var(--code);border:1px solid var(--line);padding:14px;margin:0;
+ white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.78}
+.cur{display:inline-block;width:7px;height:13px;background:var(--primary);vertical-align:-2px;
+ animation:bl 1s steps(1) infinite}@keyframes bl{0%,50%{opacity:1}51%,100%{opacity:0}}
+.stage{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px;margin-bottom:11px}
+.dot{width:7px;height:7px;background:var(--primary);animation:pulse 1.1s ease-in-out infinite}
+.src{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.src a{color:var(--secondary);text-decoration:none;cursor:pointer}.src a:hover{text-decoration:underline}
+
+#drop{border:1px dashed var(--line);background:var(--code);padding:40px 20px;text-align:center;cursor:pointer}
+#drop:hover,#drop.over{border-color:var(--primary)}
+#drop .ic{color:var(--dim);font-size:24px;margin-bottom:9px}
+#drop b{display:block;margin-bottom:5px}#drop span{color:var(--muted);font-size:12px}
+.pg{border:1px solid var(--line);margin-bottom:8px;background:var(--code)}
+.pg .ph{display:flex;align-items:center;gap:11px;padding:9px 13px;cursor:pointer;font-size:12.5px}
+.pg .ph:hover{background:#0c0c0f}
+.pg .n{color:var(--muted);width:2.2em}.pg img.th{width:34px;height:45px;object-fit:cover;border:1px solid var(--line)}
+.pg .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg .st{font-size:11.5px}.pg .tm{color:var(--dim);font-size:11.5px}
+.s-wait{color:var(--dim)}.s-run{color:var(--primary)}.s-ok{color:var(--ok)}.s-err{color:var(--err)}
+.pg .pb{display:none;border-top:1px solid var(--line);padding:12px}.pg.open .pb{display:block}
+.pg pre{max-height:44vh;overflow:auto;font-size:12.5px}
+.pg pre.locked{user-select:none;-webkit-user-select:none;color:#c9c9cf}
+.note{border:1px solid var(--line);background:var(--code);margin-bottom:8px}
+.note .nh{display:flex;align-items:center;gap:11px;padding:10px 13px;cursor:pointer;font-size:13px}
+.note .nh:hover{background:#0c0c0f}
+.note .t{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note .tg{color:var(--accent);font-size:11.5px}.note .sz{color:var(--dim);font-size:11.5px}
+.note .nb{display:none;border-top:1px solid var(--line);padding:12px}.note.open .nb{display:block}
+.note pre{max-height:40vh;overflow:auto;font-size:12.5px}
+.sub{display:flex;gap:4px;margin-bottom:14px}
+.sub button{background:transparent;border:1px solid transparent;color:var(--muted);
+ font:inherit;font-size:12.5px;padding:4px 12px;cursor:pointer}
+.sub button[aria-selected="true"]{background:var(--code);border-color:var(--line);color:var(--ink)}
+.sub button:disabled{opacity:.4;cursor:not-allowed}
+.bot{border-top:1px solid var(--line);padding:8px 18px;display:flex;gap:16px;
+ color:var(--dim);font-size:11.5px;background:var(--panel);flex:0 0 auto}
+.bot .k{color:var(--muted)}.bot .sp{margin-left:auto}
+code{background:var(--code);padding:1px 5px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <img src="/static/icon.svg" alt="">
+  <span class="mark">LLM Mini Toolkit</span>
+  <div class="tabs">
+    <button id="tab-ocr" aria-selected="true">ocr</button>
+    <button id="tab-kb" aria-selected="false">knowledge</button>
+    <button id="tab-skills" aria-selected="false">skills</button>
+    <button id="tab-docs" aria-selected="false">docs</button>
+  </div>
+  <div class="mdl" id="mdl"><span class="led"></span><span id="mdltxt">no model loaded</span></div>
+</div>
+
+<main><div class="inner">
+  <aside class="side">
+    <div class="box"><div class="hd">gpu</div><div class="bd">
+      <div id="mstat"></div>
+    </div></div>
+    <div class="box"><div class="hd">library</div><div class="bd">
+      <div class="row" style="gap:18px;margin-bottom:10px">
+        <div class="sbig"><b id="s-notes">0</b><span>notes</span></div>
+        <div class="sbig"><b id="s-chars">0</b><span>chars</span></div>
+      </div>
+      <div id="lstat"></div>
+      <div class="msg sgrp" style="line-height:1.6;margin-top:12px">Give another model these notes:
+        copy the prompt into Claude, ChatGPT or any agent and it can search, read and
+        add to the library on its own.</div>
+      <div class="row" style="margin-top:10px"><button class="sec" id="cpprompt">copy LLM prompt</button></div>
+      <div class="msg" style="margin-top:9px;font-size:11.5px">back up:
+        <a href="/api/export.zip" download style="color:var(--secondary);text-decoration:none">markdown</a>
+        <span style="color:var(--dim)">·</span>
+        <a href="/api/backup.db" download style="color:var(--secondary);text-decoration:none">database</a>
+      </div>
+      <div class="msg" style="margin-top:6px;font-size:11.5px"><a id="godocs"
+        style="color:var(--secondary);text-decoration:none;cursor:pointer">how it works →</a></div>
+    </div></div>
+  </aside>
+
+  <section>
+    <div id="warn" class="warn hide"></div>
+
+    <!-- ============ OCR ============ -->
+    <div id="view-ocr">
+      <div class="box"><div class="hd" id="ocrhd">pages</div><div class="bd">
+        <div id="drop"><div class="ic">[ ↑ ]</div><b>drop pages here</b>
+          <span>several at once · ctrl+v · <span id="ph">pdf, </span>png, jpg</span></div>
+        <div id="list"></div>
+        <div class="row" id="ocrbtns" style="margin-top:14px;display:none">
+          <button class="go" id="extract">extract</button>
+          <button class="sec" id="stop" disabled>stop</button>
+          <button class="sec" id="clear">clear</button>
+          <button class="sec hide" id="tolib">save all to library</button>
+          <span class="msg" id="ocrmsg"></span>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ KNOWLEDGE ============ -->
+    <div id="view-kb" class="hide">
+      <div class="sub">
+        <button id="sub-ask" aria-selected="true">ask</button>
+        <button id="sub-add" aria-selected="false">add</button>
+        <button id="sub-list" aria-selected="false">notes</button>
+      </div>
+
+      <div class="box" id="kb-ask"><div class="hd">ask</div><div class="bd">
+        <div class="field"><textarea id="q" rows="2" placeholder="What do we know about STM32 SWD debugging?"></textarea></div>
+        <div class="sub" style="margin-bottom:12px">
+          <button id="m-fetch" aria-selected="true">fetch</button>
+          <button id="m-search" aria-selected="false">search</button>
+          <button id="m-ask" aria-selected="false">ask</button>
+          <span class="msg" id="modehint" style="margin-left:10px;align-self:center"></span>
+        </div>
+        <div class="row"><button class="go" id="ask">ask</button><span class="msg" id="askmsg"></span></div>
+        <div id="result" class="hide" style="margin-top:14px">
+          <div class="stage hide" id="stage"><span class="dot"></span><span id="stagetxt"></span></div>
+          <div id="metrics" class="hide"></div>
+          <div id="hits" class="hide"></div>
+          <pre id="answer"></pre>
+          <div class="row hide" id="outrow" style="margin:12px 0 0">
+            <button class="sec" id="copyout">copy for a model</button>
+            <button class="sec hide" id="toggleraw">show the raw text</button>
+            <span class="msg" id="outmsg"></span>
+          </div>
+          <div class="src hide" id="sources"></div>
+        </div>
+      </div></div>
+
+      <div class="box hide" id="kb-add"><div class="hd" id="addhd">add a note</div><div class="bd">
+        <div class="wp">
+          <div class="wpt">Have a model write it for you</div>
+          <p class="msg" style="line-height:1.65;margin:0 0 10px;max-width:70ch">Copy the writing
+            prompt into Claude, ChatGPT or any model that can research, give it a subject, and it
+            returns a finished guide in the shape this library expects. Save its reply as a
+            <code>.md</code> file and drop it below.</p>
+          <div class="row"><button class="sec" id="cpwrite">copy writing prompt</button>
+            <span class="msg" id="cpwritemsg"></span></div>
+        </div>
+
+        <div class="udrop" id="udrop">
+          <b>drop .md files here</b>
+          <span>or click to choose — markdown or plain text, several at once</span>
+        </div>
+        <div id="ulist"></div>
+
+        <div class="field"><label>title</label><input id="n-title"></div>
+        <div class="field"><label>tags — they weigh heavily in search</label><input id="n-tags"></div>
+        <div class="field"><label>author (optional)</label><input id="n-author"></div>
+        <div class="field"><label>text</label><textarea id="n-body" rows="14"></textarea></div>
+        <div class="row"><button class="go" id="save">save</button>
+          <button class="sec" id="cancel">clear</button>
+          <button class="sec hide" id="saveall">save all</button>
+          <span class="msg" id="savemsg"></span></div>
+      </div></div>
+
+      <div class="box hide" id="kb-list"><div class="hd">library</div><div class="bd">
+        <div class="crumb" id="crumb"></div>
+        <div class="msg hide" id="libmsg" style="margin-bottom:12px"></div>
+
+        <!-- catalog: one card per deck -->
+        <div id="lib-catalog">
+          <div class="controls">
+            <div class="field grow"><input id="dfilter" placeholder="filter the decks"></div>
+            <span class="count" id="dcount"></span>
+          </div>
+          <div class="grid" id="decks"></div>
+        </div>
+
+        <!-- one deck: its guides -->
+        <div id="lib-deck" class="hide">
+          <div class="controls">
+            <div class="field grow"><input id="filter" placeholder="search — title, topic, register…"></div>
+            <button class="sec" id="selmode">select</button>
+            <button class="sec hide" id="delsel">delete</button>
+            <span class="count" id="gcount"></span>
+          </div>
+          <div class="grid" id="notes"></div>
+        </div>
+
+        <!-- one guide, rendered -->
+        <div id="lib-note" class="hide">
+          <div class="gmeta" id="gmeta"></div>
+          <h2 class="gtitle" id="gtitle"></h2>
+          <div class="md" id="gbody"></div>
+          <div class="row" style="margin-top:20px">
+            <button class="sec" id="g-edit">edit</button>
+            <button class="sec" id="g-del">delete</button>
+            <span class="msg" id="gmsg"></span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+
+    <!-- ============ SKILLS ============ -->
+    <div id="view-skills" class="hide">
+      <div class="sub">
+        <button id="sk-browse" aria-selected="true">browse</button>
+        <button id="sk-add" aria-selected="false">publish</button>
+      </div>
+
+      <div class="box" id="sk-list"><div class="hd">skills</div><div class="bd">
+        <div class="crumb" id="skcrumb"></div>
+        <div class="msg hide" id="skmsg" style="margin-bottom:12px"></div>
+
+        <div id="sk-catalog">
+          <div class="controls">
+            <div class="field grow"><input id="skfilter" placeholder="filter — name, description, tag"></div>
+            <span class="count" id="skcount"></span>
+          </div>
+          <div class="grid" id="skgrid"></div>
+        </div>
+
+        <div id="sk-one" class="hide">
+          <div class="gmeta" id="skmeta"></div>
+          <h2 class="gtitle" id="sktitle"></h2>
+          <div class="inst">
+            <div class="wpt">install it</div>
+            <div class="opt">
+              <label>Your system</label>
+              <div class="sub">
+                <button id="os-ubuntu" aria-selected="true">Ubuntu / Linux</button>
+                <button id="os-windows" aria-selected="false">Windows</button>
+              </div>
+            </div>
+            <div class="opt">
+              <label>Install it for</label>
+              <div class="sub">
+                <button id="tl-both" aria-selected="true">Claude Code + opencode</button>
+                <button id="tl-claude" aria-selected="false">Claude Code only</button>
+                <button id="tl-opencode" aria-selected="false">opencode only</button>
+              </div>
+            </div>
+            <p class="msg" id="skwhere" style="line-height:1.6;margin:2px 0 12px;max-width:76ch"></p>
+            <div class="wpt" style="margin-bottom:6px">Paste this into a terminal</div>
+            <pre class="doc-pre" id="skcmd"></pre>
+            <div class="msg hide" id="skoffline" style="margin:-4px 0 10px"></div>
+            <div class="msg" style="margin:0 0 4px;font-size:11.5px">
+              <a id="skmanual" style="color:var(--secondary);cursor:pointer">or do it in two steps</a>
+            </div>
+            <pre class="doc-pre hide" id="skcmd2"></pre>
+            <div id="skplan" class="hide">
+              <div class="wpt" style="margin-top:14px">what that writes</div>
+              <pre class="doc-pre" id="skplanbody"></pre>
+            </div>
+            <div class="row">
+              <button class="sec" id="skcopycmd">copy the command</button>
+              <button class="sec" id="skplanbtn">what it writes</button>
+              <a class="sec" id="skzip" download>download .zip</a>
+              <button class="sec" id="skdel">delete</button>
+              <span class="msg" id="skdelmsg"></span>
+            </div>
+          </div>
+
+          <div class="inst" id="skuse">
+            <div class="wpt">then use it</div>
+            <div id="skusebody"></div>
+          </div>
+
+          <div class="inst">
+            <div class="wpt">turn it off, or take it away</div>
+            <pre class="doc-pre" id="skmanage"></pre>
+            <p class="msg" style="line-height:1.6;margin:8px 0 0;max-width:76ch">
+              <b>disable</b> keeps the files and hides it from both tools, so you can put it
+              back. <b>uninstall</b> deletes the folder and the block. Either way the skill is
+              still published here — install it again whenever.</p>
+          </div>
+
+          <div class="skfiles" id="skfiles"></div>
+          <div class="md" id="skbody"></div>
+          <pre class="md-code hide" id="skfile"></pre>
+        </div>
+      </div></div>
+
+      <div class="box hide" id="sk-publish"><div class="hd">publish a skill</div><div class="bd">
+        <p class="doc">A skill is a folder with a <code>SKILL.md</code> at its root — YAML front
+        matter giving <code>name</code> and <code>description</code>, then the instructions. Any
+        other files ride along: scripts, templates, vendored source, prebuilt binaries.</p>
+        <p class="doc">The machine this runs on has no internet, so a skill carries what it
+        needs. Python dependencies go in <code>wheels/</code> with a <code>requirements.txt</code>;
+        they are installed with <code>--no-index</code>, which never reaches the network. Anything
+        compiled ships as source under <code>src/</code> with a Makefile, or as a binary under
+        <code>bin/</code>. A skill that would have to download something at install time is not
+        finished.</p>
+        <div class="row" style="margin-bottom:16px">
+          <button class="sec" id="cpskill">copy the skill-writing prompt</button>
+          <span class="msg" id="cpskillmsg"></span>
+        </div>
+        <div class="udrop" id="skdrop">
+          <b>drop the skill folder here</b>
+          <span>or click to choose one — subfolders are kept</span>
+        </div>
+        <div id="sklist"></div>
+        <div class="row"><button class="go" id="skpub">publish</button>
+          <button class="sec" id="skclear">clear</button>
+          <span class="msg" id="skpubmsg"></span></div>
+      </div></div>
+    </div>
+
+    <!-- ============ DOCS ============ -->
+    <div id="view-docs" class="hide">
+      <div class="box"><div class="hd">what this is</div><div class="bd">
+        <p class="doc">Two jobs behind one address. <b>ocr</b> turns a scan, a photo or a
+        300-page PDF into text — tables come out as markdown, and a page with a chart or a
+        drawing also gets a short note describing it. <b>knowledge</b> is the team's own
+        notes: <span id="d-notes">0</span> of them, searchable, and anyone can add more.</p>
+        <p class="doc">The card holds one model at a time. Whichever job you start loads its
+        own, which costs a second or two; plain search loads nothing and is instant.</p>
+      </div></div>
+
+      <div class="box"><div class="hd">giving it to a model</div><div class="bd">
+        <p class="doc">The point of the prompt is that you stop being the one who looks things
+        up. Paste it into Claude Code, ChatGPT, Cursor or anything that can run a command,
+        and that model gets the library as a tool — it searches, opens the articles it needs,
+        reads your PDFs and writes new notes back, without you in the middle.</p>
+        <p class="doc">It is one paste. The prompt already carries this server's address and
+        the one-line command that fetches the client, so the model sets itself up on first
+        use. Nothing is installed here and nothing is installed there beyond a single file.</p>
+        <div class="row" style="margin-top:14px">
+          <button class="go" id="cpdocs">copy LLM prompt</button>
+          <span class="msg" id="cpdocsmsg"></span>
+        </div>
+      </div></div>
+
+      <div class="box"><div class="hd">the three levels</div><div class="bd">
+        <p class="doc">Asking costs time, and most questions do not need the model at all.
+        The prompt tells the agent to start at the cheapest level that answers the question.</p>
+        <div class="lvl"><b>search</b><span>No model, under a second. Titles and scores, the
+          way a grep over the library would look.</span></div>
+        <div class="lvl"><b>fetch — the useful one</b><span>The small model is shown the
+          shortlisted titles and picks which are worth opening; you get those articles in
+          full, with their source links. Nothing is paraphrased, so nothing is invented.
+          A few seconds. A big model reads the source better than a small one summarises it,
+          which is why this is the one to prefer.</span></div>
+        <div class="lvl"><b>ask</b><span>The small model picks, reads and writes the answer
+          itself, citing <code>[#id]</code>. 20-90 seconds. Worth it when you want the answer
+          rather than the sources — and when it says the notes do not cover something, they
+          genuinely do not.</span></div>
+      </div></div>
+
+      <div class="box"><div class="hd">skills</div><div class="bd">
+        <p class="doc">A skill is a folder with a <code>SKILL.md</code> at its root: front matter
+        naming it and saying when it applies, then instructions another model follows. Scripts,
+        templates and vendored source travel with it.</p>
+        <p class="doc">This machine has no internet, so a skill carries what it needs. Python
+        dependencies sit in <code>wheels/</code> and install with <code>--no-index</code>, which
+        never reaches the network; anything compiled ships as source or as a binary. Installing
+        writes files and <b>runs nothing</b> — taking somebody's scripts onto your machine should
+        be a decision, not a side effect, so <code>--with-wheels</code> is the explicit opt-in.</p>
+        <pre class="doc-pre">python3 minitoolkit.py skill list
+python3 minitoolkit.py skill install stm32-debug --with-wheels
+python3 minitoolkit.py skill publish ./my-skill</pre>
+      </div></div>
+
+      <div class="box"><div class="hd">keeping a copy</div><div class="bd">
+        <p class="doc">The sidebar has two links. <b>database</b> is the exact backup, taken
+        through sqlite's own backup so a write in flight cannot tear it; put it back by stopping
+        the server and copying it over <code>data/notes.db</code>. <b>markdown</b> is a zip with
+        one readable <code>.md</code> per note plus a <code>library.json</code> holding the fields
+        markdown cannot carry. There is no way to fetch any of this again, so take one.</p>
+      </div></div>
+
+      <div class="box"><div class="hd">over http</div><div class="bd">
+        <p class="doc">Anything the client does is a plain POST, if you would rather call it
+        directly:</p>
+        <pre class="doc-pre">curl -s -X POST <span class="u" id="d-base"></span>/api/v1/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "how do we wire SWD?", "mode": "direct"}'</pre>
+        <p class="doc"><code>mode</code> is <code>direct</code> for the articles or
+        <code>summary</code> for a written answer. <code>/api/v1/search</code>,
+        <code>/api/v1/ocr</code> and <code>/api/notes</code> cover the rest; every reply is
+        JSON.</p>
+      </div></div>
+
+      <div class="box"><div class="hd">reading documents</div><div class="bd">
+        <p class="doc">Roughly <b>30 seconds a page</b>. A 20-page PDF is ten minutes, which is
+        longer than most agents' command timeout — the prompt tells them to run it in the
+        background and tail the log rather than kill it and start again. Pages queue, so a
+        second job waits instead of fighting for the card.</p>
+        <p class="doc">Drop files on the <b>ocr</b> tab to do it by hand. Numbers always come
+        from the text itself; the figure note is only there to explain the shape of a drawing,
+        never to restate a value.</p>
+      </div></div>
+
+      <div class="box"><div class="hd">adding what you know</div><div class="bd">
+        <p class="doc">Under <b>knowledge → add</b>. The title and tags carry most of the
+        search weight, so name a note the way someone would ask for it — "flashing firmware
+        over serial" finds its way home, "notes 3" does not. Anything written here is
+        immediately visible to every model pointed at this server.</p>
+        <p class="doc">There is a second prompt for the opposite direction. <b>knowledge → add</b>
+        has <b>copy writing prompt</b>: give that to a model with a subject and it researches it
+        and returns a finished guide in this library's shape — numbered sections, fenced code
+        with the indentation kept, real tables, callouts, and its sources. Save the reply as a
+        <code>.md</code> file, drop it on the same tab, and it is parsed, shown for review and
+        saved. Several files at once is fine; a file with nothing under its title is refused
+        rather than stored empty.</p>
+        <p class="doc">So: <b>copy LLM prompt</b> hands the library <i>to</i> a model,
+        <b>copy writing prompt</b> gets a document <i>out</i> of one, and the
+        <b>skills</b> tab has a third that gets a whole packaged procedure out of one.</p>
+        <p class="doc"><b>knowledge → notes</b> browses what is already here: the decks, then
+        a deck's guides, then the guide itself with its tables, code and callouts rendered.
+        Notes written here sit under their own deck rather than disappearing among the
+        imported ones.</p>
+      </div></div>
+    </div>
+  </section>
+</div></main>
+
+<div class="bot">
+  <span><span class="k">model</span> <span id="b-model">—</span></span>
+  <span><span class="k">queue</span> <span id="b-queue">0</span></span>
+  <span><span class="k">notes</span> <span id="b-notes">0</span></span>
+  <span class="sp"><span class="k">ctrl+v</span> paste · <span class="k">ctrl+enter</span> ask</span>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+let PAGES=[],RUNNING=false,STOP=false,NOTES=[],EDIT=null,BUSY=false,MODE="fetch",NOTECOUNT=0;
+
+async function copyText(t){
+  try{ if(window.isSecureContext&&navigator.clipboard){await navigator.clipboard.writeText(t);return true;} }catch(e){}
+  try{ const ta=document.createElement("textarea");ta.value=t;
+    ta.style.cssText="position:fixed;top:0;left:0;opacity:0";document.body.appendChild(ta);
+    ta.select();const ok=document.execCommand("copy");document.body.removeChild(ta);return ok;
+  }catch(e){return false;}
+}
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// a note's url comes from whatever was imported, and it lands in an href
+const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:"";
+// card previews are raw markdown; the marks are noise at that size
+const plain=t=>(t||"").replace(/```[\s\S]*?```/g,"").replace(/[`*_>#]/g,"")
+  .replace(/\[([^\]]+)\]\([^)]*\)/g,"$1").replace(/\s+/g," ").trim();
+const nf=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(1)+"k":String(n);
+
+function tab(v){
+  ["ocr","kb","skills","docs"].forEach(k=>{
+    $("#view-"+k).classList.toggle("hide",k!==v);
+    $("#tab-"+k).setAttribute("aria-selected",String(k===v));});
+  if(v==="kb"&&$("#sub-list").getAttribute("aria-selected")==="true")loadNotes();
+  if(v==="skills")loadSkills();
+}
+$("#tab-ocr").onclick=()=>tab("ocr"); $("#tab-kb").onclick=()=>tab("kb");
+$("#tab-docs").onclick=()=>tab("docs"); $("#godocs").onclick=()=>tab("docs");
+$("#tab-skills").onclick=()=>{tab("skills"); loadSkills();};
+$("#d-base").textContent=location.origin;
+function sub(v){
+  ["ask","add","list"].forEach(k=>{
+    $("#kb-"+k).classList.toggle("hide",k!==v);
+    $("#sub-"+k).setAttribute("aria-selected",String(k===v));});
+  if(v==="list")loadNotes();
+}
+$("#sub-ask").onclick=()=>sub("ask");
+$("#sub-add").onclick=()=>{EDIT=null;$("#addhd").textContent="add a note";clearForm();sub("add")};
+$("#sub-list").onclick=()=>sub("list");
+
+/* ---------- status ---------- */
+async function status(){
+  let s; try{ s=await fetch("/api/status").then(r=>r.json()); }catch(e){ $("#mdltxt").textContent="server unreachable"; return; }
+  const m=s.models;
+  const el=$("#mdl");
+  el.className="mdl"+(BUSY?" busy":(m.loaded?" on":""));
+  $("#mdltxt").textContent=BUSY?"switching…":(m.loaded?`${m.label} loaded`:"no model loaded");
+  $("#b-model").textContent=m.loaded?m.label:"—";
+  $("#b-queue").textContent=s.ocr.queue;
+  $("#b-notes").textContent=s.kb.notes;
+  $("#s-notes").textContent=nf(s.kb.notes);
+  $("#s-chars").textContent=nf(s.kb.chars); NOTECOUNT=s.kb.notes;
+  $("#d-notes").textContent=s.kb.notes;
+  $("#mstat").innerHTML=m.available.map(a=>
+    `<div class="srow"><span>${a.name==="ocr"?"ocr":a.name==="kb"?"knowledge":"figures"}</span>
+     <b style="color:${m.loaded===a.name?"var(--ok)":"var(--dim)"}">${a.vram_mib} MiB</b></div>`).join("")
+    +`<div class="srow sgrp"><span>switches</span><b>${m.switches}</b></div>`
+    +`<div class="srow"><span>time swapping</span><b>${m.switch_seconds}s</b></div>`;
+  $("#lstat").innerHTML=`<div class="srow"><span>average note</span><b>${s.kb.notes?nf(Math.round(s.kb.chars/s.kb.notes)):0} ch</b></div>`;
+  if(!s.ocr.pdf)$("#ph").textContent="";
+  const missing=!m.available.length;
+  $("#warn").classList.toggle("hide",!missing);
+  if(missing)$("#warn").textContent="No models found in models/ — nothing can run.";
+}
+status(); setInterval(()=>{if(!RUNNING&&!BUSY)status()},5000);
+
+/* ---------- OCR ---------- */
+const fi=document.createElement("input");fi.type="file";fi.accept="image/*,.pdf";fi.multiple=true;
+const drop=$("#drop");
+drop.onclick=()=>fi.click(); fi.onchange=e=>add([...e.target.files]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("over")};
+drop.ondragleave=()=>drop.classList.remove("over");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");add([...e.dataTransfer.files])};
+addEventListener("paste",e=>{ if(RUNNING||!$("#view-ocr").offsetParent)return;
+  const f=[...(e.clipboardData?.items||[])].filter(x=>x.type.startsWith("image/")).map(x=>x.getAsFile());
+  if(f.length)add(f); });
+document.addEventListener("copy",e=>{ if(RUNNING&&e.target.closest&&e.target.closest("pre.locked"))e.preventDefault(); });
+
+async function add(files){
+  if(RUNNING)return; files=files.filter(Boolean); if(!files.length)return;
+  const out=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    $("#ocrmsg").textContent=`uploading ${i+1}/${files.length} — ${(f.size/1048576).toFixed(1)} MB`;
+    let r;
+    try{ r=await fetch("/api/prepare-raw",{method:"POST",
+      headers:{"X-Filename":encodeURIComponent(f.name||`pasted-${Date.now()}.png`)},body:f}).then(x=>x.json()); }
+    catch(e){ $("#ocrmsg").textContent="server unreachable"; return; }
+    if(r.error){ $("#ocrmsg").textContent=r.error; return; }
+    $("#ocrmsg").textContent=`rendering ${i+1}/${files.length}…`;
+    r.pages.forEach((pg,idx)=>out.push({sid:r.set_id,idx,name:pg.name,thumb:pg.thumb,full:pg.full,
+      state:"wait",text:"",wall:null,err:"",pos:null}));
+  }
+  PAGES=out; $("#ocrmsg").textContent=`ready · ${PAGES.length} page(s)`; renderPages();
+}
+function renderPages(){
+  const L=$("#list"); L.innerHTML="";
+  PAGES.forEach((p,i)=>{
+    const el=document.createElement("div"); el.className="pg"+(p.open?" open":"");
+    const st=p.state==="wait"?(p.pos>0?`queued ${p.pos}`:"waiting")
+      :p.state==="run"?(p.detail?`2nd pass ${p.detail}/${p.dtotal||4}`:"running")
+      :p.state==="ok"?(p.wasDetail?"✓ done · 2nd":"✓ done"):"✗ failed";
+    el.innerHTML=`<div class="ph"><span class="n">${String(i+1).padStart(2,"0")}</span>
+      <img class="th" src="${p.thumb}" loading="lazy" alt="">
+      <span class="nm">${esc(p.name)}</span>
+      <span class="st s-${p.state}">${st}</span>
+      <span class="tm">${p.wall!=null?p.wall+"s":""}</span></div>
+      <div class="pb"><pre class="${p.state==="run"?"locked":""}" id="pre-${i}">${esc(p.text)}${p.state==="run"?'<span class="cur"></span>':""}</pre>
+      ${p.state==="ok"?`<div class="row" style="margin-top:9px"><button class="sec" data-c="${i}">copy</button><button class="sec" data-d="${i}">download</button><button class="sec" data-k="${i}">save to library</button></div>`:""}
+      ${p.state==="err"?`<div class="msg" style="color:var(--err);margin-top:8px">${esc(p.err)}</div>`:""}</div>`;
+    el.querySelector(".ph").onclick=()=>{p.open=!p.open;renderPages()};
+    L.appendChild(el);
+  });
+  L.querySelectorAll("[data-c]").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(PAGES[+b.dataset.c].text);
+    b.textContent="copied";setTimeout(()=>b.textContent="copy",1300)});
+  L.querySelectorAll("[data-d]").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=PAGES[+b.dataset.d];
+    const bl=new Blob([p.text],{type:"text/plain"});const a=document.createElement("a");
+    a.href=URL.createObjectURL(bl);a.download=p.name.replace(/\.[^.]+$/,"")+".txt";a.click()});
+  L.querySelectorAll("[data-k]").forEach(b=>b.onclick=e=>{e.stopPropagation();
+    const p=PAGES[+b.dataset.k]; toLibrary(p.name.replace(/\.[^.]+$/,""), p.text, [p.name]);});
+  const done=PAGES.filter(p=>p.state==="ok");
+  $("#tolib").classList.toggle("hide", done.length<2);
+  $("#ocrbtns").style.display=PAGES.length?"flex":"none";
+  $("#drop").style.display=PAGES.length?"none":"block";
+  $("#ocrhd").textContent=PAGES.length?`pages · ${PAGES.length}`:"pages";
+  $("#extract").disabled=RUNNING||!PAGES.some(p=>p.state==="wait");
+  $("#stop").disabled=!RUNNING||STOP; $("#clear").disabled=RUNNING;
+}
+$("#clear").onclick=()=>{if(!RUNNING){PAGES=[];$("#ocrmsg").textContent="";renderPages()}};
+$("#tolib").onclick=()=>{
+  const done=PAGES.filter(p=>p.state==="ok");
+  if(!done.length)return;
+  const stem=done[0].name.replace(/\.[^.]+$/,"");
+  // pages of one document belong together, with a marker so the split is visible
+  const body=done.map((p,i)=>done.length>1?`## ${p.name}\n\n${p.text}`:p.text).join("\n\n");
+  toLibrary(stem, body, done.map(p=>p.name));
+};
+/* A read page is text nobody can search until it is a note. Rather than save it
+   silently, fill the add form and let the person name it properly - the title
+   and tags are what the library is found by. */
+function toLibrary(stem, text, names){
+  if(!text || !text.trim()){ $("#ocrmsg").textContent="nothing to save yet"; return; }
+  EDIT=null; STAGED=[]; renderStaged();
+  const guess=(text.match(/^#\s+(.+)$/m)||[])[1] || stem.replace(/[-_]+/g," ").trim();
+  $("#addhd").textContent="add a note";
+  $("#n-title").value=guess;
+  $("#n-tags").value=("ocr "+stem.replace(/[^\w]+/g," ")).toLowerCase().trim();
+  $("#n-author").value=$("#n-author").value||"";
+  $("#n-body").value=text.trim();
+  tab("kb"); sub("add");
+  $("#savemsg").textContent=`${names.length} page(s) from ${names[0]} — check the title and tags, then save`;
+  $("#n-title").focus(); $("#n-title").select();
+}
+$("#stop").onclick=()=>{STOP=true;$("#stop").disabled=true;$("#ocrmsg").textContent="stopping after this page"};
+function runOne(gi){
+  return new Promise(res=>{
+    fetch("/api/batch",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({set_id:PAGES[gi].sid,indices:[PAGES[gi].idx]})}).then(x=>x.json()).then(r=>{
+      if(r.error){PAGES[gi].state="err";PAGES[gi].err=r.error;renderPages();return res();}
+      const es=new EventSource(`/api/batches/${r.batch_id}/events`);
+      es.onmessage=ev=>{const d=JSON.parse(ev.data);
+        if(d.kind==="start"){PAGES[gi].state="run";PAGES[gi].open=true;renderPages()}
+        else if(d.kind==="detail"){PAGES[gi].detail=1;PAGES[gi].dtotal=d.tiles;renderPages()}
+        else if(d.kind==="detail_tile"){PAGES[gi].detail=Math.min(d.total||4,d.tile+1);renderPages()}
+        else if(d.kind==="describing"){BUSY=true;status()}
+        else if(d.kind==="out"){PAGES[gi].text+=d.text;const pre=$("#pre-"+gi);
+          if(pre){pre.textContent=PAGES[gi].text;const c=document.createElement("span");
+            c.className="cur";pre.appendChild(c);pre.scrollTop=pre.scrollHeight}}
+        else if(d.kind==="page_done"){const p=PAGES[gi];
+          p.state=d.ok?"ok":"err";p.wall=d.wall;p.err=d.error||"";p.wasDetail=!!d.detail;p.detail=null;
+          if(d.ok&&d.text)p.text=d.text; if(!d.ok)p.open=true; BUSY=false; renderPages()}
+        else if(d.kind==="batch_done"){es.close();res()}};
+      es.onerror=()=>{es.close();if(PAGES[gi].state==="run"){PAGES[gi].state="err";PAGES[gi].err="connection lost"}
+        renderPages();res()};
+    }).catch(()=>{PAGES[gi].state="err";PAGES[gi].err="server unreachable";renderPages();res()});
+  });
+}
+$("#extract").onclick=async()=>{
+  const todo=PAGES.map((p,i)=>({p,i})).filter(x=>x.p.state==="wait").map(x=>x.i);
+  if(!todo.length)return;
+  RUNNING=true;STOP=false;BUSY=true;status();renderPages();
+  let n=0;
+  for(const gi of todo){ if(STOP)break; n++;
+    $("#ocrmsg").textContent=`running ${n}/${todo.length}`; await runOne(gi); }
+  RUNNING=false;BUSY=false;$("#ocrmsg").textContent=STOP?"stopped":"done";renderPages();status();
+};
+
+/* ---------- KNOWLEDGE ---------- */
+let ASKING=false, COPYTEXT="";
+const HINT={
+  search:"no model at all, under a second — titles and scores",
+  fetch :"the model picks from the titles, you get those articles in full — a few seconds",
+  ask   :"the model reads the picked articles and writes the answer — 20-90 s",
+};
+function setAsking(on){             // the mode buttons stayed live mid-run and the
+  ASKING=on;                        // answer then landed under the other mode's rules
+  $("#ask").disabled=on;
+  ["fetch","search","ask"].forEach(k=>$("#m-"+k).disabled=on);
+}
+function clearResult(){
+  $("#result").classList.add("hide"); $("#hits").classList.add("hide");
+  $("#metrics").classList.add("hide"); $("#metrics").innerHTML="";
+  $("#outrow").classList.add("hide"); $("#outmsg").textContent="";
+  $("#toggleraw").classList.add("hide"); $("#answer").classList.remove("hide");
+  COPYTEXT="";
+  $("#hits").innerHTML=""; $("#answer").textContent=""; $("#askmsg").textContent="";
+  $("#sources").classList.add("hide"); $("#stage").classList.add("hide");
+}
+function setMode(m){
+  if(ASKING)return;
+  if(MODE!==m)clearResult();        // a leftover result from the other level is confusing
+  MODE=m;
+  ["fetch","search","ask"].forEach(k=>$("#m-"+k).setAttribute("aria-selected",String(k===m)));
+  $("#modehint").textContent=HINT[m];
+  $("#ask").textContent=m;
+}
+["fetch","search","ask"].forEach(k=>$("#m-"+k).onclick=()=>setMode(k));
+setMode("fetch");                   // the one to prefer, so it is the one that starts selected
+
+/* ---------- markdown ----------
+   Small on purpose: the guides use headings, fenced code, tables, lists,
+   blockquotes and inline emphasis, and nothing here loads from a CDN because
+   the machine this runs on has no internet. */
+function mdInline(t){
+  return esc(t)
+    .replace(/`([^`]+)`/g,(m,c)=>`<code>${c}</code>`)
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+             (m,txt,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${txt}</a>`);
+}
+function mdRow(line){
+  return line.replace(/^\||\|$/g,"").split("|").map(c=>mdInline(c.trim()));
+}
+function renderMd(src){
+  const L=(src||"").replace(/\r/g,"").split("\n"), out=[];
+  let i=0;
+  const flushList=(items,ord)=>{
+    if(!items.length)return;
+    out.push(`<${ord?"ol":"ul"}>`+items.map(x=>`<li>${mdInline(x)}</li>`).join("")+`</${ord?"ol":"ul"}>`);
+  };
+  while(i<L.length){
+    const line=L[i];
+    if(/^```/.test(line)){                       // fenced code
+      const lang=line.slice(3).trim(), buf=[];
+      i++;
+      while(i<L.length && !/^```/.test(L[i])) buf.push(L[i++]);
+      i++;
+      out.push(`<pre class="md-code"${lang?` data-lang="${esc(lang)}"`:""}><code>${esc(buf.join("\n"))}</code></pre>`);
+      continue;
+    }
+    if(/^\s*$/.test(line)){ i++; continue; }
+    const h=line.match(/^(#{1,4})\s+(.*)$/);
+    if(h){ const n=h[1].length; out.push(`<h${n+1} class="md-h${n}">${mdInline(h[2])}</h${n+1}>`); i++; continue; }
+    if(/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(L[i+1]||"")){
+      const head=mdRow(line); i+=2; const rows=[];
+      while(i<L.length && /^\s*\|.*\|\s*$/.test(L[i])) rows.push(mdRow(L[i++]));
+      out.push('<div class="md-tw"><table class="md-table"><thead><tr>'
+        +head.map(c=>`<th>${c}</th>`).join("")+"</tr></thead><tbody>"
+        +rows.map(r=>"<tr>"+r.map(c=>`<td>${c}</td>`).join("")+"</tr>").join("")
+        +"</tbody></table></div>");
+      continue;
+    }
+    if(/^\s*>/.test(line)){
+      const buf=[];
+      while(i<L.length && /^\s*>/.test(L[i])) buf.push(L[i++].replace(/^\s*>\s?/,""));
+      out.push('<blockquote class="md-quote">'+renderMd(buf.join("\n"))+"</blockquote>");
+      continue;
+    }
+    if(/^\s*(?:[-*+]|\d+\.)\s+/.test(line)){
+      const ord=/^\s*\d+\./.test(line), items=[];
+      while(i<L.length && /^\s*(?:[-*+]|\d+\.)\s+/.test(L[i]))
+        items.push(L[i++].replace(/^\s*(?:[-*+]|\d+\.)\s+/,""));
+      flushList(items,ord);
+      continue;
+    }
+    // always take the first line: a "|a|b|" row with no separator under it
+    // matches no branch, and leaving it to the loop below spun forever
+    const para=[L[i++]];
+    while(i<L.length && !/^\s*$/.test(L[i]) && !/^```/.test(L[i])
+          && !/^\s*>/.test(L[i]) && !/^#{1,4}\s/.test(L[i])
+          && !/^\s*(?:[-*+]|\d+\.)\s+/.test(L[i]) && !/^\s*\|.*\|\s*$/.test(L[i]))
+      para.push(L[i++]);
+    const body=para.join(" ").trim();
+    if(body) out.push(`<p class="md-p">${mdInline(body)}</p>`);
+  }
+  return out.join("\n");
+}
+
+/* ---------- metrics ----------
+   Everything shown here is what llama-server reported for this request, or a
+   count taken from its own tokenizer. Nothing is estimated from characters. */
+function renderMetrics(items){
+  const box=$("#metrics");
+  const live=items.filter(x=>x && x[0] && x[1]!==undefined && x[1]!==null && x[1]!=="");
+  if(!live.length){ box.classList.add("hide"); box.innerHTML=""; return; }
+  box.classList.remove("hide");
+  box.innerHTML='<div class="mx">'+live.map(([k,v,hi,tip,w2])=>
+    `<div class="m${hi?" hi":""}${w2?" w2":""}"${tip?` title="${esc(tip)}"`:""}>
+       <span class="mk">${esc(k)}</span><span class="mv">${v}</span></div>`).join("")+"</div>";
+  layoutMetrics();
+}
+
+function layoutMetrics(){
+  const mx=$("#metrics .mx"); if(!mx)return;
+  const cols = mx.clientWidth<430 ? 2 : mx.clientWidth<680 ? 3 : 4;
+  mx.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  const cells=[...mx.children];
+  const span=cells.map(c=>Math.min(c.classList.contains("w2")?2:1, cols));
+  let i=0;
+  while(i<cells.length){
+    let used=0; const row=[];
+    while(i<cells.length && used+span[i]<=cols){ used+=span[i]; row.push(i); i++; }
+    if(!row.length){ span[i]=cols; i++; continue; }     // one cell wider than a row
+    for(let k=0; used<cols; k++, used++) span[row[k%row.length]]++;
+  }
+  cells.forEach((c,j)=>c.style.gridColumn=`span ${span[j]}`);
+}
+addEventListener("resize", layoutMetrics);
+const tk=n=>n>=1000?(n/1000).toFixed(1)+"k":String(n);
+const sub2=t=>` <small>${t}</small>`;
+
+function metricsForFetch(m){
+  if(!m)return renderMetrics([]);
+  const p=m.pick||{};
+  renderMetrics([
+    ["returned", tk(m.returned_tokens)+sub2("tokens · "+tk(m.returned_chars)+" chars"), true,
+     "counted by the model's own tokenizer, not estimated", true],
+    ["articles", m.opened+sub2("of "+m.candidates)],
+    ["truncated", m.truncated?m.truncated+sub2("of "+m.opened):"none"],
+    ["keyword search", m.search_seconds+sub2("s")],
+    p.prompt_tokens?["picking cost", tk(p.prompt_tokens)+sub2("in · "+p.output_tokens+" out")]:null,
+    p.output_per_second?["picking speed", p.output_per_second+sub2("tok/s out")]:null,
+    p.wall_seconds?["picking time", p.wall_seconds+sub2("s")]:null,
+  ]);
+}
+function metricsForAsk(m, seconds){
+  if(!m)return renderMetrics([]);
+  const a=m.answer||{}, p=m.pick||{};
+  const ctxPct=(a.prompt_tokens&&m.ctx_limit)?Math.round(a.prompt_tokens/m.ctx_limit*100):null;
+  renderMetrics([
+    ["written", (a.output_tokens??"—")+sub2("tokens"), true],
+    ["speed", (a.output_per_second??"—")+sub2("tok/s")],
+    a.first_token_seconds?["first token", a.first_token_seconds+sub2("s")]:null,
+    ["total", seconds+sub2("s")],
+    ["prompt", tk(a.prompt_tokens||0)+sub2("tokens")],
+    ctxPct!==null?["context", ctxPct+"%"+sub2("of "+tk(m.ctx_limit)),
+                   ctxPct>85, "how much of the model's window this filled"]:null,
+    ["notes read", m.opened+sub2("of "+m.candidates)],
+    p.prompt_tokens?["picking cost", tk(p.prompt_tokens)+sub2("in · "+p.output_tokens+" out")]:null,
+    ["keyword search", m.search_seconds+sub2("s")],
+  ]);
+}
+
+function renderHits(hits, heading){
+  const box=$("#hits"); box.classList.remove("hide"); box.innerHTML="";
+  if(heading) box.innerHTML=`<div class="hh">${esc(heading)}</div>`;
+  if(!hits.length){box.innerHTML+='<div class="msg" style="padding:10px 2px">nothing matched</div>';return}
+  hits.forEach(h=>{
+    const el=document.createElement("div"); el.className="hit";
+    const tag=(h.tags||"").split(" ").filter(Boolean)[0]||"";
+    el.innerHTML=`<div class="hr"><span class="ht">${esc(h.title)}</span>
+      ${tag?`<span class="hg">${esc(tag)}</span>`:""}
+      <span class="hs">#${h.id} · ${h.score}</span></div>
+      <div class="hp">${esc(plain(h.preview))}</div>`;
+    el.onclick=()=>openNote(h.id);
+    box.appendChild(el);
+  });
+}
+const firstLine=t=>plain((t||"").split("\n").find(x=>x.trim())||"");
+
+$("#q").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))$("#ask").click()});
+$("#ask").onclick=async()=>{
+  const q=$("#q").value.trim();
+  if(!q){                             // the button used to do nothing at all here
+    $("#askmsg").textContent="type a question first"; $("#q").focus();
+    setTimeout(()=>{if($("#askmsg").textContent==="type a question first")$("#askmsg").textContent=""},2200);
+    return;
+  }
+  if(ASKING)return;
+  setAsking(true);
+
+  if(MODE==="search"){              // no model is touched, so this is just a fetch
+    clearResult(); $("#result").classList.remove("hide");
+    const t0=Date.now();
+    let r;
+    try{ r=await fetch("/api/v1/search?limit=12&q="+encodeURIComponent(q)).then(x=>x.json()); }
+    catch(e){ $("#askmsg").textContent="server unreachable";setAsking(false);return; }
+    setAsking(false);
+    if(r.error){ $("#askmsg").textContent=r.error; return; }
+    const secs=((Date.now()-t0)/1000).toFixed(2);
+    $("#askmsg").textContent=`${secs}s · ${r.count} hit(s) · no model used`;
+    renderMetrics([
+      ["hits", r.count+sub2("of "+nf(NOTECOUNT||0)+" notes"), true],
+      ["time", secs+sub2("s")],
+      ["model", "not used"+sub2("this request"), false,
+       "keyword search never touches the GPU, loaded or not"],
+      ["top score", (r.results||[])[0]?.score ?? "—"],
+    ]);
+    renderHits(r.results||[], `${r.count} matching note(s)`);
+    COPYTEXT=(r.results||[]).map(h=>
+      `[#${h.id}] ${h.title}\n   tags: ${h.tags||"-"}   score: ${h.score}\n   ${firstLine(h.preview)}`
+    ).join("\n\n");
+    $("#outrow").classList.remove("hide");
+    $("#answer").classList.add("hide");
+    return;
+  }
+
+  if(MODE==="fetch"){
+    clearResult();
+    $("#result").classList.remove("hide");
+    let r;
+    try{ r=await fetch("/api/v1/ask",{method:"POST",headers:{"Content-Type":"application/json"},
+         body:JSON.stringify({question:q,mode:"direct",limit:4})}).then(x=>x.json()); }
+    catch(e){ $("#askmsg").textContent="server unreachable";setAsking(false);return; }
+    setAsking(false);
+    if(r.error){ $("#askmsg").textContent=r.error; return; }
+    $("#askmsg").textContent=`${r.seconds}s · ${r.count} of ${r.candidates||"?"} · picked by ${r.picked_by}`;
+    metricsForFetch(r.metrics);
+    renderHits((r.articles||[]).map(a=>({
+      id:a.id, title:a.title, tags:a.tags, score:a.score,
+      preview:firstLine(a.text)+(a.truncated?" …":"")
+    })), `${r.count} article(s) opened in full`);
+    COPYTEXT=r.text||"";
+    $("#answer").textContent=COPYTEXT||"nothing matched";
+    $("#answer").classList.add("hide");          // the payload is long; show it on request
+    $("#outrow").classList.remove("hide");
+    $("#toggleraw").classList.toggle("hide", !COPYTEXT);
+    $("#toggleraw").textContent="show the raw text";
+    return;
+  }
+  clearResult(); BUSY=true; status();
+  $("#result").classList.remove("hide");
+  $("#stage").classList.remove("hide");$("#stagetxt").textContent="loading the model, then searching";
+  const cur=document.createElement("span");cur.className="cur";$("#answer").appendChild(cur);
+  let r;
+  try{ r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({question:q})}).then(x=>x.json()); }
+  catch(e){ $("#askmsg").textContent="server unreachable";setAsking(false);BUSY=false;status();return; }
+  if(r.error){ $("#askmsg").textContent=r.error;setAsking(false);
+               $("#stage").classList.add("hide");BUSY=false;status();return; }
+  const es=new EventSource(`/api/ask/${r.job}/events`);
+  es.onmessage=ev=>{const d=JSON.parse(ev.data);
+    if(d.kind==="search")$("#stagetxt").textContent=`${d.found} candidate note(s) — choosing`;
+    else if(d.kind==="picked")$("#stagetxt").textContent=d.notes.length
+      ?`reading: ${d.notes.map(n=>n.title).join(", ")}`:"no note fitted";
+    else if(d.kind==="out")cur.insertAdjacentText("beforebegin",d.text);
+    else if(d.kind==="done"){es.close();setAsking(false);$("#stage").classList.add("hide");
+      cur.remove();BUSY=false;status();
+      if(d.error){$("#askmsg").textContent=d.error;return;}
+      $("#askmsg").textContent=`${d.seconds}s · ${d.candidates} candidate(s)`;
+      metricsForAsk(d.metrics, d.seconds);
+      if(d.sources?.length) renderHits(d.sources, `answered from ${d.sources.length} note(s)`);
+      COPYTEXT=($("#answer").textContent||"").trim()
+        + (d.sources?.length ? "\n\nSources:\n"+d.sources.map(s=>
+            `  [#${s.id}] ${s.title}`).join("\n") : "");
+      $("#outrow").classList.remove("hide");}};
+  es.onerror=()=>{es.close();setAsking(false);$("#stage").classList.add("hide");BUSY=false;status();
+    if(!$("#answer").textContent.trim())$("#askmsg").textContent="the connection dropped before an answer arrived";};
+};
+/* ---------- documents dropped in as files ----------
+   A model given WRITE-PROMPT.md returns "# Title", a "tags:" line, then the
+   guide. Front matter is accepted too, because some models emit it anyway. */
+let STAGED=[];
+const MAX_FILE=1024*1024, MAX_FILES=25;
+
+function parseDoc(name, text){
+  let body=text.replace(/\r/g,"").replace(/^\uFEFF/,"");
+  let title="", tags="";
+  const fm=body.match(/^---\n([\s\S]*?)\n---\n/);
+  if(fm){                                   // yaml front matter, if it came with any
+    fm[1].split("\n").forEach(l=>{
+      const m=l.match(/^(title|tags|keywords)\s*:\s*(.+)$/i);
+      if(!m)return;
+      const v=m[2].trim().replace(/^["']|["']$/g,"");
+      if(/title/i.test(m[1])) title=v;
+      else tags=v.replace(/^\[|\]$/g,"").replace(/[,"']/g," ");
+    });
+    body=body.slice(fm[0].length);
+  }
+  const lines=body.split("\n");
+  let i=0;
+  while(i<lines.length && !lines[i].trim()) i++;
+  const h=lines[i]?.match(/^#\s+(.+?)\s*$/);
+  if(h){ title=title||h[1].trim(); i++; }
+  while(i<lines.length && !lines[i].trim()) i++;
+  const t=lines[i]?.match(/^tags\s*:\s*(.+?)\s*$/i);
+  if(t){ tags=tags||t[1].trim(); i++; }
+  body=lines.slice(i).join("\n").replace(/^\n+/,"").trimEnd();
+  title=title||name.replace(/\.(md|markdown|txt)$/i,"").replace(/[-_]+/g," ").trim();
+  tags=tags.toLowerCase().replace(/\s+/g," ").trim();
+  const why=!body.trim() ? "the file has no text under the title" : "";
+  return {name, title, tags, body, why};
+}
+
+function renderStaged(){
+  const box=$("#ulist"); box.innerHTML="";
+  $("#saveall").classList.toggle("hide", STAGED.filter(d=>!d.why).length<2);
+  STAGED.forEach((d,k)=>{
+    const el=document.createElement("div");
+    el.className="ufile"+(d.why?" bad":"");
+    el.innerHTML=`<span class="ut">${esc(d.title)}</span>
+      ${d.tags?`<span class="ug">${esc(d.tags.split(" ")[0])}</span>`:""}
+      <span class="us">${d.why?esc(d.why):nf(d.body.length)+" ch"}</span>
+      <button class="ux" title="remove">×</button>`;
+    el.querySelector(".ut").onclick=()=>loadStaged(k);
+    el.querySelector(".ux").onclick=()=>{STAGED.splice(k,1);renderStaged()};
+    box.appendChild(el);
+  });
+}
+function loadStaged(k){
+  const d=STAGED[k]; if(!d)return;
+  EDIT=null; $("#addhd").textContent="add a note";
+  $("#n-title").value=d.title; $("#n-tags").value=d.tags;
+  $("#n-author").value=$("#n-author").value||""; $("#n-body").value=d.body;
+  $("#savemsg").textContent=`loaded ${d.name} — review it, then save`;
+}
+async function takeFiles(files){
+  const got=[...files].filter(f=>/\.(md|markdown|txt)$/i.test(f.name)||f.type.startsWith("text/"));
+  const rejected=files.length-got.length;
+  if(STAGED.length+got.length>MAX_FILES){
+    $("#savemsg").textContent=`at most ${MAX_FILES} files at a time`; return;
+  }
+  for(const f of got.slice(0,MAX_FILES)){
+    if(f.size>MAX_FILE){
+      STAGED.push({name:f.name,title:f.name,tags:"",body:"",why:"over 1 MB"}); continue;
+    }
+    STAGED.push(parseDoc(f.name, await f.text()));
+  }
+  renderStaged();
+  const ok=STAGED.filter(d=>!d.why).length;
+  $("#savemsg").textContent = rejected
+    ? `${rejected} file(s) ignored — markdown or plain text only`
+    : (ok===1 ? "" : `${ok} document(s) ready`);
+  if(STAGED.length===1 && !STAGED[0].why) loadStaged(0);
+}
+{
+  const dz=$("#udrop");
+  const picker=document.createElement("input");
+  picker.type="file"; picker.accept=".md,.markdown,.txt,text/plain,text/markdown";
+  picker.multiple=true;
+  picker.onchange=e=>{takeFiles(e.target.files); picker.value=""};
+  dz.onclick=()=>picker.click();
+  dz.ondragover=e=>{e.preventDefault(); dz.classList.add("over")};
+  dz.ondragleave=()=>dz.classList.remove("over");
+  dz.ondrop=e=>{e.preventDefault(); dz.classList.remove("over");
+    takeFiles(e.dataTransfer.files)};
+}
+$("#saveall").onclick=async()=>{
+  const docs=STAGED.filter(d=>!d.why);
+  if(!docs.length)return;
+  $("#saveall").disabled=true; $("#save").disabled=true;
+  let done=0, failed=0;
+  for(const d of docs){
+    try{
+      const r=await fetch("/api/notes",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({title:d.title,tags:d.tags,body:d.body,
+                             author:$("#n-author").value})}).then(x=>x.json());
+      r.error?failed++:done++;
+    }catch(e){ failed++; }
+    $("#savemsg").textContent=`saving… ${done+failed} of ${docs.length}`;
+  }
+  STAGED=[]; renderStaged(); clearForm(); status();
+  $("#savemsg").textContent=`${done} saved`+(failed?`, ${failed} failed`:"");
+  $("#saveall").disabled=false; $("#save").disabled=false;
+};
+$("#cpwrite").onclick=async()=>{
+  const b=$("#cpwrite"), m=$("#cpwritemsg"), label=b.textContent;
+  try{
+    const t=await fetch("/api/write-prompt").then(r=>r.text());
+    const ok=await copyText(t);
+    b.textContent=ok?"copied":"copy failed";
+    m.textContent=ok?"give the model a subject, save its reply as a .md file":"";
+  }catch(e){ b.textContent="unavailable"; m.textContent=""; }
+  setTimeout(()=>{b.textContent=label; m.textContent=""},3000);
+};
+
+$("#toggleraw").onclick=()=>{
+  const hidden=$("#answer").classList.toggle("hide");
+  $("#toggleraw").textContent=hidden?"show the raw text":"hide the raw text";
+};
+$("#copyout").onclick=async()=>{
+  const b=$("#copyout"), label=b.textContent;
+  if(!COPYTEXT){ $("#outmsg").textContent="nothing to copy"; return; }
+  const ok=await copyText(COPYTEXT);
+  b.textContent=ok?"copied":"copy failed";
+  $("#outmsg").textContent=ok?`${nf(COPYTEXT.length)} characters on the clipboard`:"";
+  setTimeout(()=>{b.textContent=label; $("#outmsg").textContent=""},2600);
+};
+
+function clearForm(){["n-title","n-tags","n-author","n-body"].forEach(i=>$("#"+i).value="")}
+$("#cancel").onclick=()=>{EDIT=null;$("#addhd").textContent="add a note";clearForm();
+  STAGED=[];renderStaged();$("#savemsg").textContent=""};
+$("#save").onclick=async()=>{
+  const b={title:$("#n-title").value,tags:$("#n-tags").value,author:$("#n-author").value,body:$("#n-body").value};
+  if(!b.title.trim()||!b.body.trim()){$("#savemsg").textContent="title and text are required";return}
+  $("#save").disabled=true;
+  try{ const r=await fetch(EDIT?`/api/notes/${EDIT}`:"/api/notes",{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(x=>x.json());
+    $("#savemsg").textContent=r.error||(EDIT?"updated":"saved");
+    if(!r.error){EDIT=null;$("#addhd").textContent="add a note";clearForm();status()}
+  }catch(e){$("#savemsg").textContent="could not save"}
+  $("#save").disabled=false; setTimeout(()=>$("#savemsg").textContent="",2500);
+};
+
+/* ---------- skills ----------
+   A skill is a folder with a SKILL.md at its root. It is published, browsed and
+   installed the same way a deck is read: catalog, then the thing itself. */
+let SKILLS=[], SKILL=null, SKSTAGED=[];
+
+function skMsg(t){ const e=$("#skmsg"); e.textContent=t||""; e.classList.toggle("hide",!t); }
+function skSub(v){
+  $("#sk-list").classList.toggle("hide", v!=="browse");
+  $("#sk-publish").classList.toggle("hide", v!=="publish");
+  $("#sk-browse").setAttribute("aria-selected", String(v==="browse"));
+  $("#sk-add").setAttribute("aria-selected", String(v==="publish"));
+}
+$("#sk-browse").onclick=()=>{skSub("browse"); skCatalog();};
+$("#sk-add").onclick=()=>skSub("publish");
+
+async function loadSkills(){
+  try{ SKILLS=(await fetch("/api/skills").then(r=>r.json())).skills||[]; }catch(e){ SKILLS=[]; }
+  if(!SKILL) skCatalog(); else renderSkGrid();
+}
+function skCatalog(){
+  SKILL=null; skMsg("");
+  $("#sk-catalog").classList.remove("hide"); $("#sk-one").classList.add("hide");
+  $("#skcrumb").innerHTML='<span>skills</span>';
+  renderSkGrid();
+}
+$("#skfilter").oninput=renderSkGrid;
+function renderSkGrid(){
+  const f=$("#skfilter").value.toLowerCase().trim();
+  const list=SKILLS.filter(s=>!f||s.name.includes(f)
+    ||(s.description||"").toLowerCase().includes(f)||(s.tags||"").includes(f));
+  $("#skcount").textContent=`${list.length} skill${list.length===1?"":"s"}`;
+  const box=$("#skgrid"); box.innerHTML="";
+  if(!list.length){box.innerHTML='<div class="msg">nothing published yet</div>';return}
+  list.forEach(sk=>{
+    const el=document.createElement("div"); el.className="card"; el.dataset.sk=sk.name;
+    el.innerHTML=`<div class="chead"><span class="cbadge">${sk.n_files} file${sk.n_files===1?"":"s"}</span></div>
+      <div class="ct">${esc(sk.name)}</div>
+      <div class="cd">${esc(plain(sk.description))}</div>
+      <div class="cfoot"><span>${nf(sk.bytes)} B</span>
+        ${sk.author?`<span>${esc(sk.author)}</span>`:""}<span class="cgo">open →</span></div>`;
+    el.onclick=()=>openSkill(sk.name);
+    box.appendChild(el);
+  });
+}
+async function openSkill(name){
+  tab("skills"); skSub("browse");
+  let sk; try{ sk=await fetch("/api/skill/"+encodeURIComponent(name)).then(r=>r.json()); }catch(e){ sk=null; }
+  if(!sk||sk.error){ skCatalog(); skMsg("no skill called "+name); return; }
+  SKILL=sk; skMsg("");
+  $("#sk-catalog").classList.add("hide"); $("#sk-one").classList.remove("hide");
+  $("#skcrumb").innerHTML=`<a id="skback">skills</a> <span>/</span> <span>${esc(sk.name)}</span>`;
+  $("#skback").onclick=skCatalog;
+  $("#sktitle").textContent=sk.title||sk.name;
+  $("#skmeta").innerHTML=[sk.name, sk.n_files+" files", nf(sk.bytes)+" B",
+    ...(sk.author?[esc(sk.author)]:[])].map(b=>`<span>${b}</span>`).join("");
+  renderInstall();
+  $("#skzip").href="/api/skill/"+encodeURIComponent(sk.name)+".zip";
+  $("#skbody").innerHTML=renderMd(sk.body||"");
+  $("#skfile").classList.add("hide");
+  const fb=$("#skfiles"); fb.innerHTML="";
+  (sk.files||[]).forEach(f=>{
+    const el=document.createElement("div"); el.className="sf";
+    el.innerHTML=`<span class="sfp">${esc(f.path)}</span><span class="sfb">${nf(f.bytes)} B</span>`;
+    el.onclick=()=>showSkFile(f.path, el);
+    fb.appendChild(el);
+  });
+}
+async function showSkFile(path, el){
+  [...$("#skfiles").children].forEach(x=>x.classList.remove("on"));
+  if(path.toLowerCase()==="skill.md"){          // already rendered below
+    $("#skfile").classList.add("hide"); $("#skbody").classList.remove("hide"); return;
+  }
+  el.classList.add("on");
+  const t=await fetch(`/api/skill/${encodeURIComponent(SKILL.name)}/files/${path}`).then(r=>r.text());
+  $("#skfile").textContent=t;
+  $("#skfile").setAttribute("data-lang", path.split(".").pop());
+  $("#skfile").classList.remove("hide"); $("#skbody").classList.add("hide");
+}
+/* ---- the install script, for the platform and the tool they pick ---- */
+let OS="ubuntu", TOOL="both";
+function renderInstall(){
+  const sk=SKILL; if(!sk)return;
+  const wh=(sk.files||[]).filter(f=>/^wheels\//.test(f.path));
+  const flags=(TOOL==="both"?"":" --tool "+TOOL)+(wh.length?" --with-wheels":"");
+  const q=(TOOL==="both"?"":"?tool="+TOOL);
+  const ext=OS==="windows"?"install.ps1":"install.sh";
+  const inst=`${location.origin}/api/skill/${encodeURIComponent(sk.name)}/${ext}${q}`;
+  // one line, the way an IDE installs itself; the two-step is there for anyone
+  // who would rather read the script before running it
+  $("#skcmd").textContent = OS==="windows"
+    ? `irm ${inst} | iex`
+    : `curl -fsSL ${inst} | sh`;
+  $("#skcmd2").textContent = OS==="windows"
+    ? `Invoke-WebRequest ${location.origin}/minitoolkit.py -OutFile minitoolkit.py\n`
+      + `python minitoolkit.py skill install ${sk.name}${flags}`
+    : `curl -sO ${location.origin}/minitoolkit.py\n`
+      + `python3 minitoolkit.py skill install ${sk.name}${flags}`;
+  $("#skwhere").innerHTML = {
+    both:"Files go to <code>~/.claude/skills/</code> and a block is written into opencode's "
+        +"<code>AGENTS.md</code>, so both tools find it.",
+    claude:"Files go to <code>~/.claude/skills/</code> only. opencode will not know about it.",
+    opencode:"Only the <code>AGENTS.md</code> block is written. Claude Code will not list it."
+  }[TOOL] + " It writes files and <b>runs nothing</b> from the skill.";
+  $("#skoffline").classList.toggle("hide", !wh.length);
+  if(wh.length) $("#skoffline").textContent =
+    `ships ${wh.length} wheel(s) — installed with --no-index, so nothing is fetched from the network`;
+
+  // what an install actually does, so it is a decision rather than a surprise
+  const home = OS==="windows" ? "%USERPROFILE%\\.claude\\skills\\"+sk.name
+                              : "~/.claude/skills/"+sk.name;
+  const sep  = OS==="windows" ? "\\" : "/";
+  const agents = OS==="windows" ? "%APPDATA%\\opencode\\AGENTS.md"
+                                : "~/.config/opencode/AGENTS.md";
+  const rows=[];
+  if(TOOL!=="opencode")
+    (sk.files||[]).forEach(f=>rows.push(
+      (home+sep+f.path.replace(/\//g,sep)).padEnd(58)+nf(f.bytes)+" B"));
+  if(TOOL!=="claude")
+    rows.push(agents.padEnd(58)+"one block, replaced if already there");
+  const py = OS==="windows" ? "python" : "python3";
+  $("#skplanbody").textContent = rows.join("\n")
+    + (wh.length
+        ? `\n\nthen, only with --with-wheels:\n`
+          + `  ${py} -m pip install --no-index --find-links ${home}${sep}wheels `
+          + ((sk.files||[]).some(f=>f.path==="requirements.txt")
+              ? `-r ${home}${sep}requirements.txt` : wh.map(f=>f.path.split("/").pop()).join(" "))
+          + `\n  --no-index means pip never contacts an index or a mirror. A skill that`
+          + `\n  ships wheels should also run without this step.`
+        : "\n\nno dependencies to install.");
+  $("#skplan").classList.add("hide");
+  $("#skplanbtn").textContent="what it writes";
+  $("#skcmd2").classList.add("hide");
+  $("#skmanual").textContent="or do it in two steps";
+
+  // a skill is only useful once something loads it, and that differs per tool
+  // the longest trigger phrases read like something a person would type;
+  // the one-word ones are for matching, not for showing
+  const asks=triggersOf(sk.description).sort((a,b)=>b.length-a.length);
+  const example=asks[0] || "do the thing this skill is for";
+  const last=asks[1] || example;
+  const parts=[];
+  if(TOOL!=="claude") parts.push(
+    `<p class="doc"><b>opencode</b> — the block went into its global <code>AGENTS.md</code>,`
+    + ` so it is loaded on every run. Open it and ask in plain words; it finds the skill and`
+    + ` reads the SKILL.md itself.</p>`
+    + `<pre class="doc-pre">opencode\n&gt; ${esc(example)}</pre>`);
+  if(TOOL!=="opencode") parts.push(
+    `<p class="doc"><b>Claude Code</b> — the folder is under <code>~/.claude/skills/</code>,`
+    + ` so it is picked up on its own. Ask, or name it:</p>`
+    + `<pre class="doc-pre">claude\n&gt; /${esc(sk.name)}\n&gt; ${esc(last)}</pre>`);
+  parts.push(
+    `<p class="doc">Neither tool is required — the folder is just files, and any model that`
+    + ` can run a command can read it:</p>`
+    + `<pre class="doc-pre">${esc(py)} minitoolkit.py skill show ${esc(sk.name)}</pre>`);
+  $("#skusebody").innerHTML=parts.join("");
+
+  $("#skmanage").textContent=
+    `${py} minitoolkit.py skill installed          # what is here, and whether it is on\n`
+    + `${py} minitoolkit.py skill disable ${sk.name}\n`
+    + `${py} minitoolkit.py skill enable ${sk.name}\n`
+    + `${py} minitoolkit.py skill uninstall ${sk.name}`;
+}
+/* "Triggers on: a, b, c" is how a description says what to ask for. */
+function triggersOf(desc){
+  const m=(desc||"").match(/triggers on:\s*(.+)$/i);
+  if(!m) return [];
+  return (m[1].match(/"([^"]+)"/g)||[]).map(x=>x.replace(/"/g,"").trim()).filter(Boolean);
+}
+["ubuntu","windows"].forEach(k=>$("#os-"+k).onclick=()=>{
+  OS=k; ["ubuntu","windows"].forEach(x=>$("#os-"+x).setAttribute("aria-selected",String(x===k)));
+  renderInstall();
+});
+["both","claude","opencode"].forEach(k=>$("#tl-"+k).onclick=()=>{
+  TOOL=k; ["both","claude","opencode"].forEach(x=>$("#tl-"+x).setAttribute("aria-selected",String(x===k)));
+  renderInstall();
+});
+
+$("#skmanual").onclick=()=>{
+  const hidden=$("#skcmd2").classList.toggle("hide");
+  $("#skmanual").textContent=hidden?"or do it in two steps":"hide the two-step version";
+};
+$("#skplanbtn").onclick=()=>{
+  const hidden=$("#skplan").classList.toggle("hide");
+  $("#skplanbtn").textContent=hidden?"what it writes":"hide";
+};
+$("#skcopycmd").onclick=async e=>{
+  const b=e.target, l=b.textContent;
+  b.textContent=(await copyText($("#skcmd").textContent))?"copied":"copy failed";
+  setTimeout(()=>b.textContent=l,2000);
+};
+$("#skdel").onclick=async e=>{
+  const b=e.target;
+  if(b.textContent!=="sure?"){ b.textContent="sure?"; setTimeout(()=>b.textContent="delete",2500); return; }
+  b.textContent="delete";
+  await fetch("/api/skill/"+encodeURIComponent(SKILL.name),{method:"POST",
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({_delete:true})});
+  const gone=SKILL.name; SKILL=null;
+  await loadSkills(); skCatalog(); skMsg(gone+" deleted");
+};
+
+/* ---- publishing: a folder, with its subfolders kept ---- */
+function skRender(){
+  const box=$("#sklist"); box.innerHTML="";
+  const has=SKSTAGED.some(f=>f.path.toLowerCase()==="skill.md");
+  $("#skpub").disabled=!SKSTAGED.length||!has;
+  if(SKSTAGED.length&&!has) $("#skpubmsg").textContent="no SKILL.md at the root of what you dropped";
+  SKSTAGED.forEach((f,k)=>{
+    const el=document.createElement("div"); el.className="ufile";
+    el.innerHTML=`<span class="ut">${esc(f.path)}</span>
+      ${/^wheels\//.test(f.path)?'<span class="ug">offline dep</span>':""}
+      <span class="us">${nf(f.size)} B</span><button class="ux">×</button>`;
+    el.querySelector(".ux").onclick=()=>{SKSTAGED.splice(k,1);skRender()};
+    box.appendChild(el);
+  });
+}
+function strip1(p){ const i=p.indexOf("/"); return i<0?p:p.slice(i+1); }
+async function skTake(files){
+  for(const f of files){
+    const rel=strip1(f.webkitRelativePath||f._path||f.name);
+    if(/(^|\/)(\.|__pycache__)/.test(rel)) continue;       // dotfiles and caches
+    if(f.size>128*1024*1024){ $("#skpubmsg").textContent=rel+" is over 128 MB"; continue; }
+    SKSTAGED.push({path:rel, size:f.size, file:f});
+  }
+  SKSTAGED.sort((a,b)=>(a.path.toLowerCase()==="skill.md"?-1:0)-(b.path.toLowerCase()==="skill.md"?-1:0)
+    || a.path.localeCompare(b.path));
+  skRender();
+}
+function walkEntry(entry, prefix, out){      // a dropped folder arrives as a tree
+  return new Promise(res=>{
+    if(entry.isFile) return entry.file(f=>{ f._path=prefix+entry.name; out.push(f); res(); }, res);
+    const rd=entry.createReader(); const all=[];
+    const step=()=>rd.readEntries(async es=>{
+      if(!es.length){ for(const e of all) await walkEntry(e, prefix+entry.name+"/", out); return res(); }
+      all.push(...es); step();
+    }, res);
+    step();
+  });
+}
+{
+  const dz=$("#skdrop");
+  const picker=document.createElement("input");
+  picker.type="file"; picker.multiple=true;
+  try{ picker.webkitdirectory=true; }catch(e){}
+  picker.onchange=e=>{ skTake([...e.target.files]); picker.value=""; };
+  dz.onclick=()=>picker.click();
+  dz.ondragover=e=>{e.preventDefault(); dz.classList.add("over")};
+  dz.ondragleave=()=>dz.classList.remove("over");
+  dz.ondrop=async e=>{
+    e.preventDefault(); dz.classList.remove("over");
+    const items=[...e.dataTransfer.items].map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+    if(items.length){
+      const out=[];
+      for(const it of items) await walkEntry(it, "", out);
+      return skTake(out);
+    }
+    skTake([...e.dataTransfer.files]);
+  };
+}
+$("#cpskill").onclick=async()=>{
+  const b=$("#cpskill"), m=$("#cpskillmsg"), label=b.textContent;
+  try{
+    const t=await fetch("/api/skill-prompt").then(r=>r.text());
+    const ok=await copyText(t);
+    b.textContent=ok?"copied":"copy failed";
+    m.textContent=ok?"tell the model what the skill should do; it returns the folder":"";
+  }catch(e){ b.textContent="unavailable"; m.textContent=""; }
+  setTimeout(()=>{b.textContent=label; m.textContent=""},3000);
+};
+$("#skclear").onclick=()=>{SKSTAGED=[];$("#skpubmsg").textContent="";skRender()};
+function skNameFrom(text){
+  const m=text.match(/^---\n([\s\S]*?)\n---/);
+  const n=(m?m[1]:"").match(/^name\s*:\s*(\S+)/m);
+  return n ? n[1].replace(/^["']|["']$/g,"").toLowerCase() : "";
+}
+$("#skpub").onclick=async()=>{
+  if(!SKSTAGED.length)return;
+  const md=SKSTAGED.find(f=>f.path.toLowerCase()==="skill.md");
+  if(!md){ $("#skpubmsg").textContent="no SKILL.md at the root"; return; }
+  const name=skNameFrom(await md.file.text());
+  if(!/^[a-z0-9][a-z0-9._-]{1,63}$/.test(name)){
+    $("#skpubmsg").textContent="SKILL.md needs a lowercase name: field"; return;
+  }
+  $("#skpub").disabled=true; $("#skclear").disabled=true;
+  // one raw body per file: a skill ships its own wheels, and base64 over JSON
+  // would cost a third more and hold the whole thing in memory at once
+  const total=SKSTAGED.reduce((a,f)=>a+f.size,0);
+  let sent=0, failed=null;
+  for(const f of SKSTAGED){
+    $("#skpubmsg").textContent=`${f.path} — ${Math.round(sent/total*100)}%`;
+    try{
+      const r=await fetch(`/api/skill-stage/${encodeURIComponent(name)}?path=${encodeURIComponent(f.path)}`,
+        {method:"POST", body:f.file});
+      if(!r.ok){ failed=`${f.path}: ${(await r.json()).error||r.status}`; break; }
+    }catch(e){ failed=`${f.path}: could not be sent`; break; }
+    sent+=f.size;
+  }
+  if(failed){
+    await fetch("/api/skill-cancel/"+encodeURIComponent(name),{method:"POST"}).catch(()=>{});
+    $("#skpubmsg").textContent=failed;
+    $("#skpub").disabled=false; $("#skclear").disabled=false; return;
+  }
+  $("#skpubmsg").textContent="publishing…";
+  let r;
+  try{ r=await fetch("/api/skill-publish/"+encodeURIComponent(name),{method:"POST",
+       headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({author:$("#n-author").value||""})}).then(x=>x.json()); }
+  catch(e){ r={error:"server unreachable"}; }
+  $("#skpub").disabled=false; $("#skclear").disabled=false;
+  if(r.error){ $("#skpubmsg").textContent=r.error; return; }
+  $("#skpubmsg").textContent=`${r.name} published — ${r.n_files} file(s), ${nf(r.bytes)} B`;
+  SKSTAGED=[]; skRender();
+  await loadSkills(); skSub("browse"); openSkill(r.name);
+};
+
+/* ---------- library: catalog -> deck -> guide ---------- */
+let DECKS=[], DECK=null, NOTE=null, SELECTING=false, PICKED=new Set();
+
+function libMsg(t){
+  const e=$("#libmsg"); e.textContent=t||""; e.classList.toggle("hide",!t);
+}
+function libView(v){
+  ["catalog","deck","note"].forEach(k=>$("#lib-"+k).classList.toggle("hide",k!==v));
+  const c=$("#crumb");
+  if(v==="catalog"){ c.innerHTML='<span>library</span>'; return; }
+  const home=`<a data-go="catalog">library</a> <span>/</span> `;
+  if(v==="deck"){ c.innerHTML=home+`<span>${esc(DECK||"")}</span>`; }
+  else c.innerHTML=home+`<a data-go="deck">${esc(DECK||"")}</a> <span>/</span> <span>${esc(NOTE?.title||"")}</span>`;
+  c.querySelectorAll("a[data-go]").forEach(a=>a.onclick=()=>
+    a.dataset.go==="catalog"?showCatalog():openDeck(DECK));
+}
+
+let LIBBUSY=false;
+async function loadNotes(){          // what the notes sub-tab opens on
+  if(LIBBUSY)return;                 // opening a guide already decided what to show
+  return showCatalog();
+}
+
+async function showCatalog(){
+  libView("catalog");
+  try{ DECKS=(await fetch("/api/decks").then(r=>r.json())).decks||[]; }catch(e){ DECKS=[]; }
+  renderDecks();
+}
+$("#dfilter").oninput=renderDecks;
+function renderDecks(){
+  const f=$("#dfilter").value.toLowerCase().trim();
+  const list=DECKS.filter(d=>!f||d.deck.toLowerCase().includes(f)
+    ||(d.title||"").toLowerCase().includes(f)||(d.summary||"").toLowerCase().includes(f));
+  $("#dcount").textContent=`${list.length} deck · ${list.reduce((a,d)=>a+d.n,0)} guides`;
+  const box=$("#decks"); box.innerHTML="";
+  if(!list.length){box.innerHTML='<div class="msg">nothing matched</div>';return}
+  list.forEach(d=>{
+    const el=document.createElement("div"); el.className="card";
+    const own=d.deck==="own";
+    el.innerHTML=`<div class="chead"><span class="cbadge">${esc(own?"written here":d.deck)}</span></div>
+      <div class="ct">${esc(own?"own notes":(d.title||d.deck))}</div>
+      <div class="cd">${esc(own
+        ? "Notes added through this interface or the CLI, not imported from the site."
+        : plain(d.summary))}</div>
+      <div class="cfoot"><span>${d.n} guide${d.n===1?"":"s"}</span>
+        <span>${nf(d.chars||0)} ch</span><span class="cgo">open →</span></div>`;
+    el.onclick=()=>openDeck(d.deck);
+    box.appendChild(el);
+  });
+}
+
+$("#selmode").onclick=()=>{
+  SELECTING=!SELECTING; PICKED.clear();
+  $("#selmode").setAttribute("aria-selected", String(SELECTING));
+  $("#selmode").textContent=SELECTING?"cancel":"select";
+  renderNotes();
+};
+$("#delsel").onclick=async e=>{
+  const b=e.target, n=PICKED.size;
+  if(!n)return;
+  if(!b.dataset.sure){                 // no dialog: a second click is the confirmation
+    b.dataset.sure="1"; b.textContent=`delete ${n} — click again`;
+    setTimeout(()=>{delete b.dataset.sure; renderNotes()},3000); return;
+  }
+  delete b.dataset.sure;
+  b.disabled=true;
+  let gone=0;
+  for(const id of [...PICKED]){
+    try{ await fetch("/api/notes/"+id,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({_delete:true})}); gone++; }catch(e){}
+  }
+  PICKED.clear(); b.disabled=false;
+  await openDeck(DECK); status();
+  libMsg(`${gone} note(s) deleted`);
+  setTimeout(()=>libMsg(""),4000);
+};
+
+async function openDeck(name){
+  DECK=name; libView("deck"); libMsg(""); $("#filter").value="";
+  SELECTING=false; PICKED.clear();
+  $("#selmode").textContent="select"; $("#selmode").setAttribute("aria-selected","false");
+  try{ NOTES=(await fetch("/api/deck/"+encodeURIComponent(name)).then(r=>r.json())).notes||[]; }
+  catch(e){ NOTES=[]; }
+  renderNotes();
+}
+$("#filter").oninput=renderNotes;
+function renderNotes(){
+  const f=$("#filter").value.toLowerCase().trim();
+  const list=NOTES.filter(n=>!f||n.title.toLowerCase().includes(f)
+    ||(n.tags||"").toLowerCase().includes(f)||(n.preview||"").toLowerCase().includes(f));
+  $("#gcount").textContent=SELECTING
+    ? `${PICKED.size} selected of ${list.length}`
+    : `${list.length} of ${NOTES.length} guide${NOTES.length===1?"":"s"}`;
+  $("#notes").classList.toggle("selecting", SELECTING);
+  $("#delsel").classList.toggle("hide", !SELECTING || !PICKED.size);
+  $("#delsel").textContent=`delete ${PICKED.size}`;
+  const box=$("#notes"); box.innerHTML="";
+  if(!list.length){box.innerHTML='<div class="msg">nothing matched</div>';return}
+  const CAP=400, shown=list.slice(0,CAP);
+  shown.forEach((n,k)=>{
+    const el=document.createElement("div"); el.className="card"; el.dataset.e=n.id;
+    const lead=plain((n.preview||"").split("\n").find(x=>x.trim())||"");
+    el.innerHTML=`<div class="chead"><span class="cpick">${PICKED.has(n.id)?"[x]":"[ ]"}</span>
+        <span class="cnum">${String(n.ord||k+1).padStart(2,"0")}</span>
+        ${n.topic?`<span class="cbadge">${esc(n.topic)}</span>`:""}</div>
+      <div class="ct">${esc(n.title)}</div>
+      <div class="cd">${esc(lead)}</div>
+      <div class="cfoot"><span>#${n.id}</span><span>${nf(n.size)} ch</span>
+        <span class="cgo">open →</span></div>`;
+    if(PICKED.has(n.id)) el.classList.add("picked");
+    el.onclick=()=>{ if(!SELECTING) return openNote(n.id);
+      PICKED.has(n.id)?PICKED.delete(n.id):PICKED.add(n.id); renderNotes(); };
+    box.appendChild(el);
+  });
+  if(list.length>CAP){               // the rest used to just not be there
+    const m=document.createElement("div");m.className="msg";m.style.padding="10px 2px";
+    m.textContent=`showing ${CAP} of ${list.length} — narrow it down with the filter above`;
+    box.appendChild(m);
+  }
+}
+
+async function openNote(id){
+  LIBBUSY=true;                      // sub() would otherwise race a catalog load in
+  tab("kb"); sub("list");
+  let n; try{ n=await fetch("/api/notes/"+id).then(r=>r.json()); }catch(e){ n=null; }
+  LIBBUSY=false;
+  if(!n||n.error){ await showCatalog(); libMsg("note #"+id+" is no longer in the library"); return; }
+  libMsg("");
+  NOTE=n; DECK=n.deck||"own";
+  libView("note");
+  $("#gtitle").textContent=n.title;
+  const bits=[`#${n.id}`, n.deck||"own"];
+  if(n.category)bits.push(esc(n.category));
+  if(n.topic)bits.push(esc(n.topic));
+  $("#gmeta").innerHTML=bits.map(b=>`<span>${b}</span>`).join("")
+    +(safeUrl(n.url)?`<a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">source ↗</a>`:"");
+  $("#gbody").innerHTML=renderMd(n.body||"");
+  $("#gmsg").textContent="";
+  $("#crumb").scrollIntoView({block:"start"});   // keep the way back on screen
+}
+
+$("#g-edit").onclick=()=>{ if(!NOTE)return;
+  EDIT=NOTE.id; $("#addhd").textContent="edit note #"+NOTE.id;
+  $("#n-title").value=NOTE.title; $("#n-tags").value=NOTE.tags||"";
+  $("#n-author").value=NOTE.author||""; $("#n-body").value=NOTE.body; sub("add"); };
+$("#g-del").onclick=async e=>{ if(!NOTE)return; const b=e.target;
+  if(b.textContent!=="sure?"){ b.textContent="sure?"; setTimeout(()=>b.textContent="delete",2500); return }
+  b.textContent="delete";
+  await fetch("/api/notes/"+NOTE.id,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({_delete:true})});
+  const back=DECK; NOTE=null; status(); back?openDeck(back):showCatalog(); };
+
+$("#cpprompt").onclick=()=>copyPrompt($("#cpprompt"),null);
+$("#cpdocs").onclick=()=>copyPrompt($("#cpdocs"),$("#cpdocsmsg"));
+renderPages();
+</script>
+</body>
+</html>

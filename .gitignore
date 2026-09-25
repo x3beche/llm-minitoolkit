@@ -1,0 +1,21 @@
+# Everything anybody puts into this thing. None of it belongs in the repo.
+data/
+models/
+logs/
+work/
+lib/
+vendor/
+stats*.json
+*.db
+*.db-journal
+*.db.bak*
+
+# The patterns that strip personal details are personal by definition
+redactions.py
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.prof*/
+.DS_Store
