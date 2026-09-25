@@ -68,17 +68,31 @@ working directory.
 
 ## How to write the instructions
 
+**SKILL.md is read by a model, not by a person.** Often a small one, holding
+your file alongside a long conversation. Write it to be scanned, not read.
+
+- **Keep it under 1000 tokens.** Roughly 4 KB. If the subject needs more, put
+  the detail in a second file and say in one line when to open it.
+- **Tables over paragraphs.** Commands, flags, exit codes and failure modes are
+  all two-column tables. A table is easier to look a value up in than prose,
+  and it costs fewer tokens.
+- **No warm-up, no summary, no restating the description.** The first section
+  is the commands.
 - **Commands complete and runnable.** Real flags, real filenames. If a value
   cannot be known ahead of time, show how to find it, not `<your-value>`.
-- **Say what success looks like.** A model cannot tell whether a command worked
-  unless you tell it what the output is when it did.
-- **Cover the failures that actually happen**, with the error text, so a model
-  can match on it: what needs a power cycle, what silently does nothing, what
-  means the wrong device was picked.
+- **Say what success looks like** — exact output, exit codes. A model cannot
+  tell whether a command worked unless you say what it does when it did. If the
+  tool has exit codes, table them; they are the cheapest thing for a model to
+  branch on.
+- **Cover the failures that actually happen**, as `symptom | cause` rows with
+  the real error text, so a model can match on what it just saw.
 - **Nothing destructive without saying so.** If a step erases flash, overwrites
   a file or restarts a service, mark it clearly.
 - **No personal data**: no names, e-mail addresses, internal hostnames, licence
   keys, or real home directory paths.
+
+Prose is for the two or three things a table cannot hold — why one approach is
+preferred, what the tool will not do. Everything else is a row.
 
 ## Before you finish
 
